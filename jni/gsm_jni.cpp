@@ -105,7 +105,7 @@ JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_GSM_encode
 				"Enocded Bytes: %d\n", ret); 		
 #endif		
         /* Write payload */		
-		env->SetByteArrayRegion(encoded, RTP_HDR_SIZE+ lin_pos, ret, gsm0610_data);
+		env->SetByteArrayRegion(encoded, lin_pos, ret, gsm0610_data);
 		lin_pos += ret;
 	}
 #ifdef DEBUG_GSM
@@ -118,7 +118,7 @@ JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_GSM_encode
 
 extern "C"
 JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_GSM_decode
-    (JNIEnv *env, jobject obj, jbyteArray encoded, jshortArray lin, jint size) {
+    (JNIEnv *env, jobject obj, jbyteArray encoded, jshortArray lin, jint offset, jint size) {
 
 	jshort post_amp[BLOCK_LEN];
 	jbyte gsm0610_data[BLOCK_LEN];
@@ -133,7 +133,7 @@ JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_GSM_decode
         "##### BEGIN DECODE ********  decoding frame size: %d\n", size); 	
 #endif
 
-	env->GetByteArrayRegion(encoded, RTP_HDR_SIZE, size, gsm0610_data);
+	env->GetByteArrayRegion(encoded, offset, size, gsm0610_data);
 	len = gsm0610_decode(gsm0610_dec_state, post_amp,(uint8_t *) gsm0610_data, size);
 
 #ifdef DEBUG_GSM		

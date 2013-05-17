@@ -1,6 +1,7 @@
 package org.servalproject.batphone;
 
 import org.servalproject.R;
+import org.servalproject.audio.ICodec;
 
 public class VoMP {
 	/*
@@ -54,27 +55,41 @@ public class VoMP {
 	public static final int MAX_AUDIO_BYTES = 1024;
 
 	public enum Codec {
-		Signed16(0x01, 1),
-		Ulaw8(0x02, 2),
-		Alaw8(0x03, 2),
-		Gsm(0x04), ;
+		Signed16(0x01, 1, null),
+		Ulaw8(0x02, 2, org.servalproject.audio.ulaw.class),
+		Alaw8(0x03, 2, org.servalproject.audio.alaw.class),
+		Gsm(0x04, 0, org.servalproject.audio.GSM.class),
+		BV16(0x05, 0, org.servalproject.audio.BV16.class),
+		SILK8(0x06, 0, org.servalproject.audio.SILK8.class),
+		SILK16(0x07, 0, org.servalproject.audio.SILK16.class),
+		SILK24(0x08, 0, org.servalproject.audio.SILK24.class),
+		Speex(0x09, 0, org.servalproject.audio.SILK24.class),
+		G722(0x10, 0, org.servalproject.audio.SILK24.class);
 
 		public final int code;
 		// we put this string into audio packets quite a lot, lets only pay the
 		// conversion cost once.
 		public final String codeString;
 		public final int preference;
+		public final boolean supported;
+		private final Class<? extends ICodec> claz;
 
-		Codec(int code, int preference) {
+		Codec(int code, int preference, Class<? extends ICodec> claz) {
 			this.code = code;
 			this.codeString = Integer.toString(code);
 			this.preference = preference;
+			this.supported = claz != null;
+			this.claz = claz;
 		}
 
 		Codec(int code) {
-			this(code, 0);
+			this(code, 0, null);
 		}
 
+		public ICodec create() throws IllegalAccessException,
+				InstantiationException {
+			return claz.newInstance();
+		}
 		public static Codec getCodec(int code) {
 			switch (code) {
 			case 0x01:
@@ -85,6 +100,19 @@ public class VoMP {
 				return Alaw8;
 			case 0x04:
 				return Gsm;
+			case 0x05:
+				return BV16;
+			case 0x06:
+				return SILK8;
+			case 0x07:
+				return SILK16;
+			case 0x08:
+				return SILK24;
+			case 0x09:
+				return Speex;
+			case 0x10:
+				return G722;
+
 			default:
 				return null;
 			}

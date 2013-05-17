@@ -101,7 +101,7 @@ JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_G722_encode
 				"Enocded Bytes: %d\n", ret); 		
 #endif		
         /* Write payload */		
-		env->SetByteArrayRegion(encoded, RTP_HDR_SIZE+ lin_pos, ret, adpcmdata);
+		env->SetByteArrayRegion(encoded, lin_pos, ret, adpcmdata);
 		lin_pos += ret;
 	}
 #ifdef DEBUG_G722
@@ -114,7 +114,7 @@ JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_G722_encode
 
 extern "C"
 JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_G722_decode
-    (JNIEnv *env, jobject obj, jbyteArray encoded, jshortArray lin, jint size) {
+    (JNIEnv *env, jobject obj, jbyteArray encoded, jshortArray lin, jint offset, jint size) {
 
  //   jbyte buffer [MAX_BYTES_DEC_PER_FRAME * MAX_INPUT_FRAMES * ( MAX_LBRR_DELAY + 1 ) ];
  //   jshort output_buffer[( MAX_FRAME_LENGTH << 1 ) * MAX_INPUT_FRAMES ];
@@ -132,7 +132,7 @@ JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_G722_decode
         "##### BEGIN DECODE ********  decoding frame size: %d\n", size); 	
 #endif
 
-	env->GetByteArrayRegion(encoded, RTP_HDR_SIZE, size, adpcmdata);
+	env->GetByteArrayRegion(encoded, offset, size, adpcmdata);
 	len = g722_decode(&dec_state, outdata, (uint8_t *) adpcmdata, size);
 
 //		ret = SKP_Silk_SDK_Decode( psDec, &DecControl, 0,(SKP_uint8 *) buffer, size, output_buffer,&len );

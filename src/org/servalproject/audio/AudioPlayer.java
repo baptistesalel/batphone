@@ -9,8 +9,6 @@ import java.util.Stack;
 
 import org.servalproject.batphone.VoMP;
 
-import uk.co.mmscomputing.sound.CodecOutputStream;
-import uk.co.mmscomputing.sound.DecompressOutputStream;
 import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -31,8 +29,8 @@ public class AudioPlayer implements Runnable {
 	private AudioManager am;
 	private AudioOutputStream audioOutput;
 	public final Oslec echoCanceler;
-	private CodecOutputStream codecOutput;
 	private VoMP.Codec codec;
+	private ICodec codecInstance;
 
 	private int playbackLatency;
 	private int lastSample = -1;
@@ -55,7 +53,6 @@ public class AudioPlayer implements Runnable {
 		final byte buff[];
 		int dataLen;
 		int sampleStart;
-		int sampleEnd;
 		long received;
 		int thisDelay;
 
@@ -93,25 +90,40 @@ public class AudioPlayer implements Runnable {
 		recommendedJitterDelay = jitter_delay;
 
 		if (this.codec == null) {
-			// TODO move into run method and only choose a codec on playback
-			switch (codec) {
-			case Signed16:
-				this.codecOutput = this.audioOutput;
-				break;
-			case Alaw8:
-				this.codecOutput = new DecompressOutputStream(
-						this.audioOutput,
-						true);
-				break;
-			case Ulaw8:
-				this.codecOutput = new DecompressOutputStream(
-						this.audioOutput,
-						false);
-				break;
-			default:
-				// ignore unsupported codecs
+			if (!codec.supported)
 				return 0;
+
+			if (codec != VoMP.Codec.Signed16) {
+				try {
+					this.codecInstance = codec.create();
+				} catch (IllegalAccessException e) {
+					Log.e(TAG, e.toString(), e);
+				} catch (InstantiationException e) {
+					Log.e(TAG, e.toString(), e);
+				}
+
 			}
+
+			// TODO move into run method and only choose a codec on playback
+			// switch (codec) {
+			// case Signed16:
+			// this.codecOutput = this.audioOutput;
+			// break;
+			// case Alaw8:
+			// this.codecOutput = new DecompressOutputStream(
+			// this.audioOutput,
+			// true);
+			// break;
+			// case Ulaw8:
+			// this.codecOutput = new DecompressOutputStream(
+			// this.audioOutput,
+			// false);
+			// break;
+			// default:
+			// // ignore unsupported codecs
+			// return 0;
+			// }
+
 			this.codec = codec;
 			Log.v(TAG, "Set codec to " + codec);
 
@@ -146,12 +158,11 @@ public class AudioPlayer implements Runnable {
 			}
 		}
 
-		int duration = this.codecOutput.sampleDurationFrames(buff.buff, 0,
-				byteCount) / 8;
+		// int duration = this.codecOutput.sampleDurationFrames(buff.buff, 0,
+		// byteCount) / 8;
 		ret = byteCount;
 		buff.dataLen = byteCount;
 		buff.sampleStart = start_time;
-		buff.sampleEnd = start_time + duration - 1;
 		buff.received = SystemClock.elapsedRealtime();
 		buff.thisDelay = this_delay;
 		synchronized (playList) {
@@ -222,25 +233,23 @@ public class AudioPlayer implements Runnable {
 		// NULL???
 		am = (AudioManager) context
 				.getSystemService(Context.AUDIO_SERVICE);
-
-		codecOutput = audioOutput;
 	}
 
 	public synchronized void cleanup() {
 		if (audioOutput == null || playbackThread != null)
 			return;
 
-		try {
-			codecOutput.close();
-		} catch (IOException e) {
-			Log.e(TAG, e.getMessage(), e);
-		}
+		// try {
+		codecInstance.close();
+		// } catch (IOException e) {
+		// Log.e(TAG, e.getMessage(), e);
+		// }
 		playList.clear();
 		reuseList.clear();
 		if (echoCanceler != null)
 			echoCanceler.enabled(false);
 		audioOutput = null;
-		codecOutput = null;
+		codecInstance = null;
 		am = null;
 	}
 
@@ -258,6 +267,7 @@ public class AudioPlayer implements Runnable {
 		lastSample = -1;
 		lastSampleEnd = -1;
 		StringBuilder sb = new StringBuilder();
+		short[] buffer = new short[8 * 120];
 
 		Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
 
@@ -344,7 +354,11 @@ public class AudioPlayer implements Runnable {
 
 								sb.append("F");
 								lastSample = buff.sampleStart;
-								lastSampleEnd = buff.sampleEnd;
+
+								int duration = this.codecInstance.sampleDurationFrames(buff.buff, 0,
+								buff.dataLen) / 8;
+
+								lastSampleEnd = buff.sampleStart+duration;
 								reuseList.push(buff);
 								continue;
 							}
@@ -374,8 +388,27 @@ public class AudioPlayer implements Runnable {
 				if (buff != null) {
 					// write the audio sample, then check the packet queue again
 					lastSample = buff.sampleStart;
-					lastSampleEnd = buff.sampleEnd;
-					this.codecOutput.write(buff.buff, 0, buff.dataLen);
+
+
+
+					int decodedlen = codecInstance.decode(buff.buff, buffer, 0,
+							buff.dataLen) / 2;
+
+					lastSampleEnd = (buff.sampleStart + decodedlen);
+					int offset = 0;
+
+					while (offset < decodedlen) {
+						int samplesWritten = audioOutput.audioTrack.write(
+								buffer, offset, decodedlen - offset);
+					//this.codecOutput.write(buff.buff, 0, buff.dataLen);
+
+						if (samplesWritten < 0)
+							throw new IOException();
+
+						offset += samplesWritten;
+
+					}
+
 					sb.append(".");
 					synchronized (playList) {
 						reuseList.push(buff);

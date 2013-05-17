@@ -449,8 +449,22 @@ public class CallHandler {
 
 	private boolean isSupported(VoMP.Codec codec) {
 		switch (codec) {
+		case BV16:
+			return true;
+		case SILK8:
+			return true;
+		case SILK16:
+			return true;
+		case SILK24:
+			return true;
+		case Speex:
+			return true;
+		case G722:
+			return true;
 		case Signed16:
+			return true;
 		case Ulaw8:
+			return true;
 		case Alaw8:
 			return true;
 		}

@@ -8,6 +8,7 @@ import java.util.Iterator;
 import org.servalproject.ServalBatPhoneApplication.State;
 import org.servalproject.batphone.CallHandler;
 import org.servalproject.batphone.VoMP;
+import org.servalproject.batphone.VoMP.Codec;
 import org.servalproject.rhizome.Rhizome;
 import org.servalproject.rhizome.RhizomeManifest;
 import org.servalproject.servald.BundleId;
@@ -44,6 +45,10 @@ public class Control extends Service {
 	private SimpleWebServer webServer;
 	private int peerCount = -1;
 	private WifiControl.AlarmLock alarmLock;
+	private static final String TAG = "MyActivity";
+
+	private static Control instance;
+
 	private WifiManager.MulticastLock multicastLock = null;
 
 	public void onNetworkStateChanged() {
@@ -406,10 +411,22 @@ public class Control extends Service {
 				app.updateStatus("Running");
 				// tell servald that we can initiate and answer phone calls, and
 				// the list of codecs we support
-				app.servaldMonitor.sendMessage("monitor vomp "
-						+ VoMP.Codec.Signed16.codeString + " "
-						+ VoMP.Codec.Ulaw8.codeString + " "
-						+ VoMP.Codec.Alaw8.codeString);
+				StringBuilder sb = new StringBuilder("monitor vomp");
+				for (Codec cod : Codec.values()) {
+
+					sb.append(' ').append(cod.codeString);
+				}
+
+				Log.v(TAG, "prov: " + sb);
+				app.servaldMonitor.sendMessage(sb.toString());
+
+				// for (Codec cod : Codec.values())
+				// app.servaldMonitor.sendMessage(cod.codeString + " ");
+
+				// app.servaldMonitor.sendMessage("monitor vomp "
+				// + VoMP.Codec.Signed16.codeString + " "
+				// + VoMP.Codec.Ulaw8.codeString + " "
+				// + VoMP.Codec.Alaw8.codeString);
 				app.servaldMonitor
 						.sendMessage("monitor rhizome");
 				app.servaldMonitor.sendMessage("monitor peers");

@@ -124,7 +124,7 @@ JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_BV16_encode
 		env->GetShortArrayRegion(lin, offset + i,frsz, enc_buffer);
 		BV16_Encode((struct BV16_Bit_Stream*) enc_bs,(struct BV16_Encoder_State*) enc_state, enc_buffer);
 		BV16_BitPack( (UWord8 *) enc_output_buffer, (struct BV16_Bit_Stream*) enc_bs );
-		env->SetByteArrayRegion(encoded, RTP_HDR_SIZE+ lin_pos, BITSTREAM_SIZE, enc_output_buffer);
+		env->SetByteArrayRegion(encoded, lin_pos, BITSTREAM_SIZE, enc_output_buffer);
 		lin_pos += BITSTREAM_SIZE;
 	}
 //	__android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, 
@@ -134,7 +134,7 @@ JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_BV16_encode
 
 extern "C"
 JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_BV16_decode
-    (JNIEnv *env, jobject obj, jbyteArray encoded, jshortArray lin, jint size) {
+    (JNIEnv *env, jobject obj, jbyteArray encoded, jshortArray lin, jint offset, jint size) {
 
 	unsigned int lin_pos = 0;
 	
@@ -150,7 +150,7 @@ JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_BV16_decode
 //		__android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, 
 //			"**** I DECODE ******  decoding frame size: %d lin_pos %d last i: %d\n", size, lin_pos, i); 
 			
-		env->GetByteArrayRegion(encoded, i+RTP_HDR_SIZE, BITSTREAM_SIZE,dec_buffer);
+		env->GetByteArrayRegion(encoded, i+offset, BITSTREAM_SIZE,dec_buffer);
 
 		BV16_BitUnPack((UWord8 *)dec_buffer, (struct BV16_Bit_Stream*)dec_bs ); 
 		BV16_Decode((struct BV16_Bit_Stream*) dec_bs,(struct BV16_Decoder_State*) dec_state,

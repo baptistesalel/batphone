@@ -9,7 +9,7 @@ import android.media.AudioTrack;
 
 public class AudioOutputStream extends OutputStream implements
 		CodecOutputStream {
-	private final AudioTrack audioTrack;
+	public final AudioTrack audioTrack;
 	private int writtenFrames = 0;
 	private final int frameSize;
 	private final Oslec echoCanceller;

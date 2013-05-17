@@ -84,7 +84,7 @@ JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_Speex_encode
 	speex_bits_pack(&ebits, 0xf, 5);
 	tot_bytes = speex_bits_write(&ebits, (char *)output_buffer,
 				     enc_frame_size);
-	env->SetByteArrayRegion(encoded, rtp_header, tot_bytes,
+	env->SetByteArrayRegion(encoded, 0, tot_bytes,
 				output_buffer);
 
         return (jint)tot_bytes;
@@ -92,7 +92,7 @@ JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_Speex_encode
 
 extern "C"
 JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_Speex_decode
-    (JNIEnv *env, jobject obj, jbyteArray encoded, jshortArray lin, jint size) {
+    (JNIEnv *env, jobject obj, jbyteArray encoded, jshortArray lin, jint offset, jint size) {
 
         jbyte buffer[dec_frame_size];
         jshort output_buffer[dec_frame_size];
@@ -101,7 +101,7 @@ JNIEXPORT jint JNICALL Java_org_sipdroid_codecs_Speex_decode
 	if (!codec_open)
 		return 0;
 
-	env->GetByteArrayRegion(encoded, rtp_header, encoded_length, buffer);
+	env->GetByteArrayRegion(encoded, offset, encoded_length, buffer);
 	speex_bits_read_from(&dbits, (char *)buffer, encoded_length);
 	speex_decode_int(dec_state, &dbits, output_buffer);
 	env->SetShortArrayRegion(lin, 0, dec_frame_size,
